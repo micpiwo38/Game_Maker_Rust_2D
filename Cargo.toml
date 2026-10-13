@@ -1,0 +1,11 @@
+[package]
+name = "Game_Maker_Rsut_2D"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+winit = "0.29" #Gestion de la fenetre principale + events
+wgpu = "0.19" #Abstarction graphique multi-platformer (Vulkan/DirectX12/Metal Bare)
+pollster = "0.3" #Execution de code asynchrone pour wgpu
+env_logger = "0.11"# Afficher des logs wgpu
+log = "0.4" # Macro de loggong
