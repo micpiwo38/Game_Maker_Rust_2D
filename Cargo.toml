@@ -9,3 +9,6 @@ wgpu = "0.19" #Abstarction graphique multi-platformer (Vulkan/DirectX12/Metal Ba
 pollster = "0.3" #Execution de code asynchrone pour wgpu
 env_logger = "0.11"# Afficher des logs wgpu
 log = "0.4" # Macro de loggong
+egui = "0.27"
+egui-wgpu = "0.27"
+egui-winit = "0.27"
