@@ -120,13 +120,19 @@ impl<'a> GameState<'a> {
             .create_view(&wgpu::TextureViewDescriptor::default());
         //1. Demarrage de la frame egui et appel du module menu
         let raw_input = self.egui_state.take_egui_input(self.window);
+        //-------------------------------------------------------------------------------//
         let full_output = self.egui_ctx.run(raw_input, |ctx| {
             //1. Le menu
             crate::views::menu::render(ctx);
             //2. Le panneau Hierarchy
             let object_refs: Vec<&str> = self.scene_object.iter().map(|s| s.as_str()).collect();
             crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);
+            //3. Le panneau Inspector a droite
+            crate::views::inspector::render(ctx, &mut self.selected_object);
+            //4. Viewport = Zone centrale
+            crate::views::viewport::render(ctx);
         });
+        //-----------------------------------------------------------------------------------//
         self.egui_state.handle_platform_output(self.window, full_output.platform_output);
         let tris = self.egui_ctx.tessellate(full_output.shapes, self.window.scale_factor() as f32);
         let screen_descriptor = egui_wgpu::ScreenDescriptor{
