@@ -16,6 +16,7 @@ pub struct GameState<'a> {
     //Le panneau Hierarchy
     pub selected_object: Option<String>,
     pub scene_object: Vec<String>,
+    pub current_asset_path: String,
 }
 
 impl<'a> GameState<'a> {
@@ -92,7 +93,8 @@ impl<'a> GameState<'a> {
                 "Player".to_string(),
                 "Enemy_One".to_string(),
                 "TileMap".to_string(),
-            ]
+            ],
+            current_asset_path: "assets".to_string(),
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -129,7 +131,10 @@ impl<'a> GameState<'a> {
             crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);
             //3. Le panneau Inspector a droite
             crate::views::inspector::render(ctx, &mut self.selected_object);
-            //4. Viewport = Zone centrale
+            //4. Explorateur de fichier
+            let asset_list = crate::views::asset_browser::load_directory(&self.current_asset_path);
+            crate::views::asset_browser::render(ctx, &mut self.current_asset_path, &asset_list);
+            //5. Viewport = Zone centrale
             crate::views::viewport::render(ctx);
         });
         //-----------------------------------------------------------------------------------//
