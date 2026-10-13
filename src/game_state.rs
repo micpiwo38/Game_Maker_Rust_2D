@@ -7,7 +7,15 @@ pub struct GameState<'a> {
     pub queue: Queue,
     pub config: SurfaceConfiguration,
     pub size: winit::dpi::PhysicalSize<u32>,
-    pub(crate) window: &'a Window
+    pub(crate) window: &'a Window,
+    //Champ egui
+    pub egui_ctx: egui::Context,
+    pub egui_state: egui_winit::State,
+    pub egui_renderer: egui_wgpu::Renderer,
+
+    //Le panneau Hierarchy
+    pub selected_object: Option<String>,
+    pub scene_object: Vec<String>,
 }
 
 impl<'a> GameState<'a> {
@@ -65,9 +73,26 @@ impl<'a> GameState<'a> {
             view_formats: vec![surface_format.into()],
         };
         surface.configure(&device, &config);
+        //Init d'egui
+        let egui_ctx = egui::Context::default();
+        let egui_state = egui_winit::State::new(
+            egui_ctx.clone(),
+            egui::ViewportId::ROOT,
+            window,
+            None,
+            None
+        );
+        let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
+
 
         Self{
-            window, surface, device, queue, config, size
+            window, surface, device, queue, config, size, egui_ctx, egui_state, egui_renderer, selected_object: None,
+            scene_object: vec![
+                "MainCamera".to_string(),
+                "Player".to_string(),
+                "Enemy_One".to_string(),
+                "TileMap".to_string(),
+            ]
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -78,6 +103,12 @@ impl<'a> GameState<'a> {
             self.surface.configure(&self.device, &self.config);
         }
     }
+    //Gestion des evenements
+    pub fn handle_event(&mut self, event: &winit::event::WindowEvent) -> bool {
+        let response = self.egui_state.on_window_event(self.window, event);
+        response.consumed
+    }
+
     //MAJ
     pub fn update(&mut self) {}
 
@@ -87,14 +118,41 @@ impl<'a> GameState<'a> {
         let view = output
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
+        //1. Demarrage de la frame egui et appel du module menu
+        let raw_input = self.egui_state.take_egui_input(self.window);
+        let full_output = self.egui_ctx.run(raw_input, |ctx| {
+            //1. Le menu
+            crate::views::menu::render(ctx);
+            //2. Le panneau Hierarchy
+            let object_refs: Vec<&str> = self.scene_object.iter().map(|s| s.as_str()).collect();
+            crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);
+        });
+        self.egui_state.handle_platform_output(self.window, full_output.platform_output);
+        let tris = self.egui_ctx.tessellate(full_output.shapes, self.window.scale_factor() as f32);
+        let screen_descriptor = egui_wgpu::ScreenDescriptor{
+            size_in_pixels: [self.config.width, self.config.height],
+            pixels_per_point: self.window.scale_factor() as f32,
+        };
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor{
                 label: Some("Render Encoder"),
             });
+        //MAJ des textures + buffers egui
+        for(id, image_delta) in &full_output.textures_delta.set{
+            self.egui_renderer.update_texture(&self.device, &self.queue, *id, image_delta);
+        }
+
+        self.egui_renderer.update_buffers(
+            &self.device,
+            &self.queue,
+            &mut encoder,
+            &tris,
+            &screen_descriptor,
+        );
         {
             //Efface l'ecran avec une couleur unie
-            let _render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
+            let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor{
                 label: Some("Render Pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment{
                     view: &view,
@@ -113,7 +171,14 @@ impl<'a> GameState<'a> {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+            //Rendu de l'interface egui par dessus -> wgpu
+            self.egui_renderer.render(&mut render_pass, &tris, &screen_descriptor);
         }
+        //Nettoyage des textures egui et liberation memoire
+        for id in &full_output.textures_delta.free{
+            self.egui_renderer.free_texture(id);
+        }
+
         self.queue.submit(std::iter::once(encoder.finish()));
         output.present();
         Ok(())

@@ -5,6 +5,7 @@ use winit::window::WindowBuilder;
 use crate::game_state::GameState;
 
 mod game_state;
+mod views;
 
 fn main() {
     env_logger::init();
@@ -19,35 +20,39 @@ fn main() {
         .run(move|event, control_flow|{
             control_flow.set_control_flow(winit::event_loop::ControlFlow::Poll);
 
-            match event{
+            match event {
                 Event::NewEvents(_) => {}
                 Event::WindowEvent {
                     ref event,
                     window_id,
-                } if window_id == state.window.id() => match event {
-                    WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
-                        event:
-                        KeyEvent{
-                            state: ElementState::Pressed,
-                            logical_key: winit::keyboard::Key::Named(winit::keyboard::NamedKey::Escape),
-                            ..
-                        },
-                        ..
-                    } => control_flow.exit(),
-                    WindowEvent::Resized(physical_size) => {
-                        state.resize(*physical_size);
-                    }
-                    WindowEvent::RedrawRequested => {
-                        state.update();
-                        match state.render() {
-                            Ok(_) => {}
-                            Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
-                            Err(wgpu::SurfaceError::OutOfMemory) => control_flow.exit(),
-                            Err(e) => eprintln!("{:?}", e),
+                } if window_id == state.window.id() =>
+                    if !state.handle_event(event) {
+                        match event {
+                            WindowEvent::CloseRequested | WindowEvent::KeyboardInput {
+                                event:
+                                KeyEvent {
+                                    state: ElementState::Pressed,
+                                    logical_key: winit::keyboard::Key::Named(winit::keyboard::NamedKey::Escape),
+                                    ..
+                                },
+                                ..
+                            } => control_flow.exit(),
+                            WindowEvent::Resized(physical_size) => {
+                                state.resize(*physical_size);
+                            }
+                            WindowEvent::RedrawRequested => {
+                                state.update();
+                                match state.render() {
+                                    Ok(_) => {}
+                                    Err(wgpu::SurfaceError::Lost) => state.resize(state.size),
+                                    Err(wgpu::SurfaceError::OutOfMemory) => control_flow.exit(),
+                                    Err(e) => eprintln!("{:?}", e),
+                                }
+                            }
+                            _ => {}
                         }
                     }
-                    _ => {}
-                },
+
                 Event::DeviceEvent { .. } => {}
                 Event::UserEvent(_) => {}
                 Event::Suspended => {}
