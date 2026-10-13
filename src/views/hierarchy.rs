@@ -1,4 +1,5 @@
 
+//Le panneau hierarchy
 pub fn render(ctx: &egui::Context, objects: &[&str], selected_object: &mut Option<String>) {
     egui::SidePanel::left("hierarchy_panel")
         .default_width(200.0)
