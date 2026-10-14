@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use egui::TextureHandle;
 use wgpu::{Backend, Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
 
@@ -17,6 +19,7 @@ pub struct GameState<'a> {
     pub selected_object: Option<String>,
     pub scene_object: Vec<String>,
     pub current_asset_path: String,
+    pub asset_texture_cache: HashMap<String, TextureHandle>,
 }
 
 impl<'a> GameState<'a> {
@@ -95,6 +98,7 @@ impl<'a> GameState<'a> {
                 "TileMap".to_string(),
             ],
             current_asset_path: "assets".to_string(),
+            asset_texture_cache: HashMap::new(),
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -133,7 +137,12 @@ impl<'a> GameState<'a> {
             crate::views::inspector::render(ctx, &mut self.selected_object);
             //4. Explorateur de fichier
             let asset_list = crate::views::asset_browser::load_directory(&self.current_asset_path);
-            crate::views::asset_browser::render(ctx, &mut self.current_asset_path, &asset_list);
+            crate::views::asset_browser::render(
+                ctx,
+                &mut self.current_asset_path,
+                &asset_list,
+                &mut self.asset_texture_cache,
+            );
             //5. Viewport = Zone centrale
             crate::views::viewport::render(ctx);
         });
