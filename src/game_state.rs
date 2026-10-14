@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use egui::TextureHandle;
 use wgpu::{Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
+use crate::views::asset_browser::AssetEntry;
 use crate::views::sprite_editor::SpriteEditorState;
 
 pub struct GameState<'a> {
@@ -20,6 +21,8 @@ pub struct GameState<'a> {
     pub selected_object: Option<String>,
     pub scene_object: Vec<String>,
     pub current_asset_path: String,
+    pub assets: Vec<AssetEntry>,
+    pub last_path: String,
     pub asset_texture_cache: HashMap<String, TextureHandle>,
     //Selectionné un asset (image, son, GameObject, etc...)
     pub selected_asset: Option<crate::views::asset_browser::AssetEntry>,
@@ -91,7 +94,8 @@ impl<'a> GameState<'a> {
             None
         );
         let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1);
-
+        let current_path = "assets".to_string();
+        let initial_assets = crate::views::asset_browser::load_directory(&current_path);
 
         Self{
             window, surface, device, queue, config, size, egui_ctx, egui_state, egui_renderer, selected_object: None,
@@ -101,7 +105,9 @@ impl<'a> GameState<'a> {
                 "Enemy_One".to_string(),
                 "TileMap".to_string(),
             ],
-            current_asset_path: "assets".to_string(),
+            current_asset_path: current_path,
+            assets: initial_assets,
+            last_path: "assets".to_string(),
             asset_texture_cache: HashMap::new(),
             selected_asset: None,
             sprite_editor_state: Default::default()
@@ -142,11 +148,16 @@ impl<'a> GameState<'a> {
             //3. Le panneau Inspector a droite
             crate::views::inspector::render(ctx, &mut self.selected_object, &mut self.selected_asset, &mut self.sprite_editor_state);
             //4. Explorateur de fichier
-            let asset_list = crate::views::asset_browser::load_directory(&self.current_asset_path);
+            // Si le chemin a changé (ex: on a cliqué sur un dossier ou sur "Back"), on recharge les assets !
+            if self.current_asset_path != self.last_path {
+                self.assets = crate::views::asset_browser::load_directory(&self.current_asset_path);
+                self.last_path = self.current_asset_path.clone();
+            }
+
             crate::views::asset_browser::render(
                 ctx,
                 &mut self.current_asset_path,
-                &asset_list,
+                &mut self.assets,
                 &mut self.asset_texture_cache,
                 &mut self.selected_asset,
                 &mut self.selected_object

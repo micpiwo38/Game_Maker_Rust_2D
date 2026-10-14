@@ -1,5 +1,5 @@
 use egui::{Color32, Pos2, Rect, TextureHandle, Vec2};
-use crate::views::asset_browser::AssetEntry;
+use crate::views::asset_browser::{AssetEntry, SpriteMeta};
 pub struct SpriteEditorState {
     pub cols: usize,
     pub rows: usize,
@@ -27,7 +27,6 @@ pub fn render(
 }
 
 fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Option<&TextureHandle>, selected_asset: &mut Option<AssetEntry>) {
-    //Extraire l'etat bool d'une variable locale pour eviter l'emprunt partagé de 'state'
     let mut open = state.is_open;
     let mut apply_click = false;
 
@@ -44,7 +43,7 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
                 ui.add(egui::DragValue::new(&mut state.rows).clamp_range(1.0..=8.0));
             });
             ui.separator();
-            //Zone d'affichage du SpriteScheet avec grille par-dessus
+
             ui.allocate_ui_with_layout(
                 ui.available_size(),
                 egui::Layout::top_down(egui::Align::Center),
@@ -52,61 +51,74 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
                     if let Some(tex) = texture {
                         let available_size = ui.available_size() - Vec2::new(0.0, 64.0);
                         let tex_size = tex.size_vec2();
-                        //Calcul d'un ratio pour garder les proportions de l'image
                         let scale = (available_size.x / tex_size.x).min(available_size.y / tex_size.y);
                         let display_size = tex_size * scale;
-                        let (rect, response) = ui.allocate_exact_size(display_size, egui::Sense::hover());
-                        //Affichage de l'image du spritesheet en Pixel Perfect NEAREST
+
+                        let (rect, _response) = ui.allocate_exact_size(display_size, egui::Sense::hover());
+
                         ui.painter().image(
                             tex.id(),
                             rect,
-                            Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0,1.0)),
+                            Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
                             Color32::WHITE,
                         );
-                        //Dessiner la grille de decoupe par dessus le spritesheet façcon Unity
+
                         let painter = ui.painter();
                         let cell_w = rect.width() / state.cols as f32;
                         let cell_h = rect.height() / state.rows as f32;
-                        //La boucle de découpe cols et rows
-                        for c in 0..state.cols{
+
+                        for c in 0..state.cols {
                             let x = rect.min.x + c as f32 * cell_w;
-                            //Peindre la grille horizontale
                             painter.line_segment(
                                 [Pos2::new(x, rect.min.y), Pos2::new(x, rect.max.y)],
-                                egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(0,255,128)),
+                                egui::Stroke::new(1.0_f32, Color32::from_rgb(0, 255, 128)),
                             );
                         }
-                        //En verticale
-                        for r in 0..state.rows{
+
+                        for r in 0..state.rows {
                             let y = rect.min.y + r as f32 * cell_h;
-                            //Peindre la grille horizontale
                             painter.line_segment(
                                 [Pos2::new(rect.min.x, y), Pos2::new(rect.max.x, y)],
-                                egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(0,255,128)),
+                                egui::Stroke::new(1.0_f32, Color32::from_rgb(0, 255, 128)),
                             );
                         }
+
                         ui.add_space(10.0);
                         ui.label(format!("Active Cut : {} with sub-sprite {}x{} grid", state.cols * state.rows, state.cols, state.rows));
-                        //Le booleen
+
                         if ui.button("✔ Slice & Apply").clicked() {
                             apply_click = true;
                         }
-                    }else{
+                    } else {
                         ui.colored_label(Color32::GRAY, "No textures selected for this sprite !");
                     }
                 }
-            )
+            );
         });
-    //2. Mettre a jour l'etat de la structure en dehors de la closure de la fenetre
-    state.is_open = open;
-    //Validé la decoupe du spritesheet
-    if apply_click{
-        if let Some(asset) = selected_asset {
-            asset.sub_sprites.clear();
-            let total_cuts = state.cols * state.rows;
 
-            for i in 0..total_cuts{
-                asset.sub_sprites.push(AssetEntry{
+    // Synchronisation de l'état d'ouverture
+    state.is_open = open;
+
+    // Validation et écriture de la persistance
+    if apply_click {
+        if let Some(asset) = selected_asset {
+            // 1. Sauvegarde propre du fichier .meta sans espace parasite dans le nom
+            let meta_path_format = format!("{}.meta", asset.path);
+            let meta_data = SpriteMeta {
+                cols: state.cols,
+                rows: state.rows,
+            };
+
+            if let Ok(json) = serde_json::to_string(&meta_data) {
+                let _ = std::fs::write(meta_path_format, json);
+            }
+
+            // 2. Génération des sous-sprites en mémoire sur l'asset sélectionné
+            asset.sub_sprites.clear();
+            let total_cuts = state.cols * state.rows; // <-- Multiplication corrigée ici
+
+            for i in 0..total_cuts {
+                asset.sub_sprites.push(AssetEntry {
                     name: format!("{}_sub_{}", asset.name, i),
                     path: asset.path.clone(),
                     is_dir: false,
@@ -114,7 +126,7 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
                     sub_sprites: vec![],
                 });
             }
-            state.is_open = false; //Ferme l'editeur de sprite
+            state.is_open = false;
         }
     }
 }
