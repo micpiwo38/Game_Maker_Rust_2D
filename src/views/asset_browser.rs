@@ -1,21 +1,21 @@
-use std::default::Default;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use egui::{Color32, TextureHandle};
+use egui::{Color32, TextureHandle, Rect};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
-pub struct AssetEntry{
+pub struct AssetEntry {
     pub name: String,
     pub path: String,
     pub is_dir: bool,
     pub is_expanded: bool,
     pub sub_sprites: Vec<AssetEntry>,
+    pub uv_rect: Option<[f32; 4]>, // Coordonnées UV pour découper la portion de la spritesheet
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct SpriteMeta{
+pub struct SpriteMeta {
     pub cols: usize,
     pub rows: usize,
 }
@@ -38,14 +38,26 @@ pub fn load_directory(path: &str) -> Vec<AssetEntry> {
                         let meta_path = format!("{}.meta", file_path);
                         if let Ok(meta_content) = fs::read_to_string(&meta_path) {
                             if let Ok(meta) = serde_json::from_str::<SpriteMeta>(&meta_content) {
+                                let total_cols = meta.cols as f32;
+                                let total_rows = meta.rows as f32;
                                 let total_cuts = meta.cols * meta.rows;
+
                                 for i in 0..total_cuts {
+                                    let c = (i % meta.cols) as f32;
+                                    let r = (i / meta.cols) as f32;
+
+                                    let min_x = c / total_cols;
+                                    let min_y = r / total_rows;
+                                    let max_x = (c + 1.0) / total_cols;
+                                    let max_y = (r + 1.0) / total_rows;
+
                                     sub_sprites.push(AssetEntry {
                                         name: format!("{}_sub_{}", file_name, i),
                                         path: file_path.clone(),
                                         is_dir: false,
                                         is_expanded: false,
                                         sub_sprites: vec![],
+                                        uv_rect: Some([min_x, min_y, max_x, max_y]),
                                     });
                                 }
                             }
@@ -58,6 +70,7 @@ pub fn load_directory(path: &str) -> Vec<AssetEntry> {
                         is_dir: file_type.is_dir(),
                         is_expanded: false,
                         sub_sprites,
+                        uv_rect: None,
                     });
                 }
             }
@@ -66,7 +79,7 @@ pub fn load_directory(path: &str) -> Vec<AssetEntry> {
     entries
 }
 
-pub fn load_texture_from_file(ctx: &egui::Context, path: &str) -> Option<TextureHandle>{
+pub fn load_texture_from_file(ctx: &egui::Context, path: &str) -> Option<TextureHandle> {
     let image_bytes = fs::read(path).ok()?;
     let dynamic_image = image::load_from_memory(&image_bytes).ok()?;
     let rgba_image = dynamic_image.to_rgba8();
@@ -80,13 +93,13 @@ pub fn load_texture_from_file(ctx: &egui::Context, path: &str) -> Option<Texture
 pub fn render(
     ctx: &egui::Context,
     current_path: &mut String,
-    assets: &mut [AssetEntry], // <-- IMPORTANT : Passé en mutable (&mut [AssetEntry]) pour modifier l'état d'expansion
+    assets: &mut [AssetEntry],
     texture_cache: &mut HashMap<String, TextureHandle>,
     selected_asset: &mut Option<AssetEntry>,
     selected_object: &mut Option<String>
 ) {
     egui::TopBottomPanel::bottom("asset_browser_panel")
-        .default_height(200.0)
+        .default_height(220.0)
         .resizable(true)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -115,12 +128,10 @@ pub fn render(
                     let item_width = 100.0;
                     let columns = (available_width / item_width).floor().max(1.0) as usize;
 
-                    // On parcourt les assets par chunks pour faire la grille principale
                     for chunk in assets.chunks_mut(columns) {
                         ui.horizontal(|ui| {
-                            for asset in chunk {
+                            for asset in &mut *chunk {
                                 ui.vertical(|ui| {
-                                    // 1. La tuile principale du sprite
                                     ui.group(|ui| {
                                         ui.set_width(90.0);
                                         ui.set_height(110.0);
@@ -143,7 +154,6 @@ pub fn render(
 
                                                 ui.add(egui::Image::new((texture.id(), egui::vec2(45.0, 45.0))));
 
-                                                // --- BOUTON FLÈCHE FONCTIONNEL ---
                                                 if !asset.sub_sprites.is_empty() {
                                                     ui.horizontal(|ui| {
                                                         let arrow = if asset.is_expanded { "▼" } else { "▶" };
@@ -174,34 +184,67 @@ pub fn render(
                                             }
                                         });
                                     });
-
-                                    // 2. --- AFFICHAGE DES SOUS-SPRITES DIRECTEMENT SOUS LA TUILE QUAND DÉPLIÉ ---
-                                    if asset.is_expanded && !asset.sub_sprites.is_empty() {
-                                        ui.add_space(4.0);
-                                        ui.group(|ui| {
-                                            ui.set_width(90.0);
-                                            ui.vertical(|ui| {
-                                                ui.label(egui::RichText::new("Sub-sprites:").size(10.0).color(Color32::YELLOW));
-                                                egui::ScrollArea::vertical().max_height(100.0).show(ui, |ui| {
-                                                    for sub in &asset.sub_sprites {
-                                                        ui.horizontal(|ui| {
-                                                            if let Some(texture) = texture_cache.get(&sub.path) {
-                                                                ui.add(egui::Image::new((texture.id(), egui::vec2(24.0, 24.0))));
-                                                            }
-                                                            if ui.link(&sub.name).clicked() {
-                                                                *selected_asset = Some(sub.clone());
-                                                            }
-                                                        });
-                                                    }
-                                                });
-                                            });
-                                        });
-                                    }
                                 });
                                 ui.add_space(4.0);
                             }
                         });
-                        ui.add_space(6.0);
+
+                        // Tiroir de sous-sprites
+                        for asset in chunk {
+                            if asset.is_expanded && !asset.sub_sprites.is_empty() {
+                                ui.add_space(4.0);
+                                egui::Frame::group(ui.style())
+                                    .fill(Color32::from_rgb(25, 25, 25))
+                                    .show(ui, |ui| {
+                                        ui.horizontal(|ui| {
+                                            ui.label(
+                                                egui::RichText::new(format!("Sub-sprites of : {}", asset.name))
+                                                    .size(11.0)
+                                                    .color(Color32::LIGHT_BLUE)
+                                                    .strong()
+                                            );
+                                        });
+                                        ui.add_space(4.0);
+
+                                        egui::ScrollArea::horizontal()
+                                            .id_source(format!("sub_scroll_{}", asset.path))
+                                            .show(ui, |ui| {
+                                                ui.horizontal(|ui| {
+                                                    for sub in &asset.sub_sprites {
+                                                        ui.vertical_centered(|ui| {
+                                                            ui.group(|ui| {
+                                                                ui.set_max_size(egui::vec2(65.0, 80.0));
+                                                                ui.vertical_centered(|ui| {
+                                                                    if let Some(texture) = texture_cache.get(&sub.path) {
+                                                                        let mut img = egui::Image::new((texture.id(), egui::vec2(32.0, 32.0)));
+                                                                        if let Some(uv) = sub.uv_rect {
+                                                                            img = img.uv(Rect::from_min_max(
+                                                                                egui::pos2(uv[0], uv[1]),
+                                                                                egui::pos2(uv[2], uv[3]),
+                                                                            ));
+                                                                        }
+                                                                        ui.add(img);
+                                                                    }
+                                                                    let sub_short = if sub.name.chars().count() > 8 {
+                                                                        format!("{}..", sub.name.chars().take(6).collect::<String>())
+                                                                    } else {
+                                                                        sub.name.clone()
+                                                                    };
+                                                                    if ui.link(sub_short).clicked() {
+                                                                        *selected_asset = Some(sub.clone());
+                                                                    }
+                                                                });
+                                                            });
+                                                        });
+                                                        ui.add_space(6.0);
+                                                    }
+                                                });
+                                            });
+                                    });
+                                ui.add_space(6.0);
+                            }
+                        }
+                        ui.add_space(8.0);
                     }
                 });
         });

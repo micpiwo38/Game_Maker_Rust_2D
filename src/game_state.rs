@@ -162,14 +162,20 @@ impl<'a> GameState<'a> {
                 &mut self.selected_asset,
                 &mut self.selected_object
             );
+
             //5. Ouvrir l'editeur de Sprite
             let active_texture = self.selected_asset.as_ref().and_then(|asset|{
                 self.asset_texture_cache.get(&asset.path)
             });
-            //6. Ouvrir l'editeur de sprite
-            crate::views::sprite_editor::render(
+            //6. Ouvrir l'editeur de sprite et vérifier si on vient de valider une découpe
+            let slice_applied = crate::views::sprite_editor::render(
                 ctx, &mut self.sprite_editor_state, active_texture, &mut self.selected_asset
             );
+
+            if slice_applied {
+                // On recharge les assets du dossier pour prendre en compte le nouveau .meta et afficher les sous-sprites
+                self.assets = crate::views::asset_browser::load_directory(&self.current_asset_path);
+            }
             //7. Viewport = Zone centrale
             crate::views::viewport::render(ctx);
         });

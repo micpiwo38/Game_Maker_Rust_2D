@@ -1,5 +1,6 @@
 use egui::{Color32, Pos2, Rect, TextureHandle, Vec2};
 use crate::views::asset_browser::{AssetEntry, SpriteMeta};
+
 pub struct SpriteEditorState {
     pub cols: usize,
     pub rows: usize,
@@ -8,7 +9,7 @@ pub struct SpriteEditorState {
 
 impl Default for SpriteEditorState {
     fn default() -> Self {
-        Self{
+        Self {
             cols: 4,
             rows: 2,
             is_open: false,
@@ -21,12 +22,17 @@ pub fn render(
     state: &mut SpriteEditorState,
     texture: Option<&TextureHandle>,
     selected_asset: &mut Option<AssetEntry>,
-){
-    if !state.is_open {return;}
-    egui_window(ctx, state, texture, selected_asset);
+) -> bool {
+    if !state.is_open { return false; }
+    egui_window(ctx, state, texture, selected_asset)
 }
 
-fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Option<&TextureHandle>, selected_asset: &mut Option<AssetEntry>) {
+fn egui_window(
+    ctx: &egui::Context,
+    state: &mut SpriteEditorState,
+    texture: Option<&TextureHandle>,
+    selected_asset: &mut Option<AssetEntry>
+) -> bool {
     let mut open = state.is_open;
     let mut apply_click = false;
 
@@ -47,7 +53,7 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
             ui.allocate_ui_with_layout(
                 ui.available_size(),
                 egui::Layout::top_down(egui::Align::Center),
-                |ui|{
+                |ui| {
                     if let Some(tex) = texture {
                         let available_size = ui.available_size() - Vec2::new(0.0, 64.0);
                         let tex_size = tex.size_vec2();
@@ -84,7 +90,7 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
                         }
 
                         ui.add_space(10.0);
-                        ui.label(format!("Active Cut : {} with sub-sprite {}x{} grid", state.cols * state.rows, state.cols, state.rows));
+                        ui.label(format!("Active Cut : {} sub-sprites ({}x{} grid)", state.cols * state.rows, state.cols, state.rows));
 
                         if ui.button("✔ Slice & Apply").clicked() {
                             apply_click = true;
@@ -96,13 +102,10 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
             );
         });
 
-    // Synchronisation de l'état d'ouverture
     state.is_open = open;
 
-    // Validation et écriture de la persistance
     if apply_click {
         if let Some(asset) = selected_asset {
-            // 1. Sauvegarde propre du fichier .meta sans espace parasite dans le nom
             let meta_path_format = format!("{}.meta", asset.path);
             let meta_data = SpriteMeta {
                 cols: state.cols,
@@ -113,20 +116,32 @@ fn egui_window(ctx: &egui::Context, state: &mut SpriteEditorState, texture: Opti
                 let _ = std::fs::write(meta_path_format, json);
             }
 
-            // 2. Génération des sous-sprites en mémoire sur l'asset sélectionné
             asset.sub_sprites.clear();
-            let total_cuts = state.cols * state.rows; // <-- Multiplication corrigée ici
+            let total_cols = state.cols as f32;
+            let total_rows = state.rows as f32;
+            let total_cuts = state.cols * state.rows;
 
             for i in 0..total_cuts {
+                let c = (i % state.cols) as f32;
+                let r = (i / state.cols) as f32;
+
+                let min_x = c / total_cols;
+                let min_y = r / total_rows;
+                let max_x = (c + 1.0) / total_cols;
+                let max_y = (r + 1.0) / total_rows;
+
                 asset.sub_sprites.push(AssetEntry {
                     name: format!("{}_sub_{}", asset.name, i),
                     path: asset.path.clone(),
                     is_dir: false,
                     is_expanded: false,
                     sub_sprites: vec![],
+                    uv_rect: Some([min_x, min_y, max_x, max_y]),
                 });
             }
             state.is_open = false;
+            return true;
         }
     }
+    false
 }
