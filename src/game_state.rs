@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use egui::TextureHandle;
-use wgpu::{Backend, Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
+use wgpu::{Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
+use crate::views::sprite_editor::SpriteEditorState;
 
 pub struct GameState<'a> {
     pub surface: Surface<'a>,
@@ -20,6 +21,9 @@ pub struct GameState<'a> {
     pub scene_object: Vec<String>,
     pub current_asset_path: String,
     pub asset_texture_cache: HashMap<String, TextureHandle>,
+    //Selectionné un asset (image, son, GameObject, etc...)
+    pub selected_asset: Option<crate::views::asset_browser::AssetEntry>,
+    pub sprite_editor_state: SpriteEditorState
 }
 
 impl<'a> GameState<'a> {
@@ -99,6 +103,8 @@ impl<'a> GameState<'a> {
             ],
             current_asset_path: "assets".to_string(),
             asset_texture_cache: HashMap::new(),
+            selected_asset: None,
+            sprite_editor_state: Default::default()
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -134,7 +140,7 @@ impl<'a> GameState<'a> {
             let object_refs: Vec<&str> = self.scene_object.iter().map(|s| s.as_str()).collect();
             crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);
             //3. Le panneau Inspector a droite
-            crate::views::inspector::render(ctx, &mut self.selected_object);
+            crate::views::inspector::render(ctx, &mut self.selected_object, &mut self.selected_asset, &mut self.sprite_editor_state);
             //4. Explorateur de fichier
             let asset_list = crate::views::asset_browser::load_directory(&self.current_asset_path);
             crate::views::asset_browser::render(
@@ -142,8 +148,18 @@ impl<'a> GameState<'a> {
                 &mut self.current_asset_path,
                 &asset_list,
                 &mut self.asset_texture_cache,
+                &mut self.selected_asset,
+                &mut self.selected_object
             );
-            //5. Viewport = Zone centrale
+            //5. Ouvrir l'editeur de Sprite
+            let active_texture = self.selected_asset.as_ref().and_then(|asset|{
+                self.asset_texture_cache.get(&asset.path)
+            });
+            //6. Ouvrir l'editeur de sprite
+            crate::views::sprite_editor::render(
+                ctx, &mut self.sprite_editor_state, active_texture, &mut self.selected_asset
+            );
+            //7. Viewport = Zone centrale
             crate::views::viewport::render(ctx);
         });
         //-----------------------------------------------------------------------------------//

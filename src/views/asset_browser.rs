@@ -10,6 +10,8 @@ pub struct AssetEntry{
     pub name: String,
     pub path: String,
     pub is_dir: bool,
+    pub is_expanded: bool, //Affiche les sprites découpés ou non
+    pub sub_sprites: Vec<AssetEntry>, //Les sous-sprites découpés
 }
 //Fonction pour scanner un dossier locale
 pub fn load_directory(path: &str) -> Vec<AssetEntry>{
@@ -24,6 +26,8 @@ pub fn load_directory(path: &str) -> Vec<AssetEntry>{
                         name: file_name.to_string(),
                         path: file_path,
                         is_dir: file_type.is_dir(),
+                        is_expanded: false,
+                        sub_sprites: vec![],
                     });
                 }
             }
@@ -42,7 +46,8 @@ pub fn load_texture_from_file(ctx: &egui::Context, path: &str) -> Option<Texture
     let pixels = rgba_image.into_raw();
     //Securité si la taille du buffer ne corespond pas exactement au calcul => proprement au lieu de paniquer
     let egui_image = egui::ColorImage::from_rgba_unmultiplied([width, height], &pixels);
-    Some(ctx.load_texture(path, egui_image, egui::TextureOptions::default()))
+    //Supprimer le flou (Blur) des images
+    Some(ctx.load_texture(path, egui_image, egui::TextureOptions::NEAREST))
 }
 
 pub fn render(
@@ -50,6 +55,8 @@ pub fn render(
     current_path: &mut String,
     assets: &[AssetEntry],
     texture_cache: &mut HashMap<String, TextureHandle>,
+    selected_asset: &mut Option<AssetEntry>,
+    selected_object: &mut Option<String>
 ) {
     egui::TopBottomPanel::bottom("asset_browser_panel")
         .default_height(200.0)
@@ -123,6 +130,10 @@ pub fn render(
                                         if ui.link(display_name).clicked() {
                                             if asset.is_dir {
                                                 *current_path = asset.path.clone();
+                                            }else{
+                                                //Clic sur un fichier => affiche dans le panneau Inspector
+                                                *selected_asset = Some(asset.clone());
+                                                *selected_object = None; //Deselectionne la hierarchie pour donner le focus a l'asset
                                             }
                                         }
                                     });
