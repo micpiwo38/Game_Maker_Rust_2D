@@ -1,3 +1,4 @@
+use rfd::MessageDialogResult::No;
 use crate::views::scene::SceneEntity;
 
 //Le panneau hierarchy
@@ -14,10 +15,12 @@ pub fn render(ctx: &egui::Context, selected_object: &mut Option<String>, scene_e
                 //Logique d'ajout d'un objet
             }
             ui.add_space(5.0);
+            //Variable temporaire pour stocker un element a supprimer
+            let mut entity_to_delete: Option<String> = None;
             //Lister les objets de la scene
             let scroll_area = egui::ScrollArea::vertical().auto_shrink([false; 2]);
             scroll_area.show(ui, |ui| {
-                for entity in scene_entities{
+                for entity in &*scene_entities{
                     let is_selected = selected_object.as_ref() == Some(&entity.name);
                     //On affiche un bouton ou un label cliquable pour chaque objet
                     let response = ui.selectable_label(is_selected, &entity.name);
@@ -27,5 +30,15 @@ pub fn render(ctx: &egui::Context, selected_object: &mut Option<String>, scene_e
                     }
                 }
             });
+            if let Some(selected_name) = selected_object{
+                if ctx.input(|i| i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace)) {
+                    entity_to_delete = Some(selected_name.clone());
+                }
+            }
+            //Effectue la supression proprement apres affichage
+            if let Some(name_to_del) = entity_to_delete {
+                scene_entities.retain(|entity| entity.name != name_to_del);
+                *selected_object = None;
+            }
         });
 }

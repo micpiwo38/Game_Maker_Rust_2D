@@ -42,7 +42,7 @@ impl<'a> GameState<'a> {
             backends: Backends::PRIMARY,
             ..Default::default()
         });
-        //Comme SLD la surface est le contenu de la fenetre
+        //Comme SDL la surface est le contenu de la fenetre
         let surface = instance.create_surface(window).unwrap();
         //Adaptateur graphique => GPU Nvidia Physique
         let adapter = instance

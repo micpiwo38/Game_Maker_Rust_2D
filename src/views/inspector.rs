@@ -48,6 +48,11 @@ pub fn render(
                                 ui.add(egui::DragValue::new(&mut entity.y).speed(1.0));
                             })
                         });
+                    ui.separator();
+                    ui.add_space(20.0);
+                    if ui.button("🗑 Delete Entity").clicked(){
+                        scene_entities.retain(|e| e.name != *obj_name);
+                    }
                 }else{
                     //Pas de GameObject Trouvé
                     ui.colored_label(egui::Color32::LIGHT_RED, "No matching entity found in scene !");
