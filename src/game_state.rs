@@ -144,7 +144,13 @@ impl<'a> GameState<'a> {
             let object_refs: Vec<&str> = self.scene_entities.iter().map(|s| s.name.as_str()).collect();
             crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);
             //3. Le panneau Inspector a droite
-            crate::views::inspector::render(ctx, &mut self.selected_object, &mut self.selected_asset, &mut self.sprite_editor_state);
+            crate::views::inspector::render(
+                ctx,
+                &mut self.selected_object,
+                &mut self.selected_asset,
+                &mut self.sprite_editor_state,
+                &mut self.scene_entities
+            );
             //4. Explorateur de fichier
             // Si le chemin a changé (ex: on a cliqué sur un dossier ou sur "Back"), on recharge les assets !
             if self.current_asset_path != self.last_path {

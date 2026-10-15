@@ -1,4 +1,5 @@
 use crate::views::asset_browser::AssetEntry;
+use crate::views::scene::SceneEntity;
 use crate::views::sprite_editor::SpriteEditorState;
 
 //Enum pour gerer le decoupage du spritesheet
@@ -15,7 +16,8 @@ pub fn render(
     ctx: &egui::Context,
     selected_object: &mut Option<String>,
     selected_asset: &mut Option<AssetEntry>,
-    sprite_editor_state: &mut SpriteEditorState
+    sprite_editor_state: &mut SpriteEditorState,
+    scene_entities: &mut Vec<SceneEntity>,
 ) {
     egui::SidePanel::right("inspector_panel")
         .default_width(280.0)
@@ -23,27 +25,33 @@ pub fn render(
         .show(ctx, |ui| {
             ui.heading("Inspector");
             ui.separator();
+
             //1. Cas ou un objet est selectionné dans la scene (Hierarchie)
             if let Some(obj_name) = selected_object {
                 ui.horizontal(|ui| {
                     ui.label("Object Name:");
-                    ui.text_edit_singleline(obj_name);
+                    ui.text_edit_singleline(obj_name); //Afficher le nom de l'objet
+                    ui.strong(obj_name.clone()) //Mettre en gras pour mettre en valeur l'objet selectionné
                 });
-                ui.add_space(10.0);
-                ui.collapsing("Transform", |ui|{
-                    //Valeur fictive de position exemple
-                    let mut pos_x = 0.0f32;
-                    let mut pos_y = 0.0f32;
-                    ui.horizontal(|ui| {
-                        ui.label("Position X : ");
-                        ui.add(egui::DragValue::new(&mut pos_x).speed(1.0));
-                    });
-                    //Y
-                    ui.horizontal(|ui| {
-                        ui.label("Position Y : ");
-                        ui.add(egui::DragValue::new(&mut pos_y).speed(1.0));
-                    });
-                });
+                //On cherche l'entité dans la liste de scene
+                if let Some(entity) = scene_entities.iter_mut().find(|e| e.name == *obj_name){
+                    //Paneau des composants (Transform, Rigidbody2D, BoxCollider2D, etc...)
+                    egui::CollapsingHeader::new("📍 Transform")
+                        .default_open(true) //Ouvert par defaut
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label("Position X : ");
+                                ui.add(egui::DragValue::new(&mut entity.position.x).speed(1.0)); //Changer la position X du GameObject
+                            });
+                            ui.horizontal(|ui| {
+                                ui.label("Position Y : ");
+                                ui.add(egui::DragValue::new(&mut entity.position.y).speed(1.0));
+                            })
+                        });
+                }else{
+                    //Pas de GameObject Trouvé
+                    ui.colored_label(egui::Color32::LIGHT_RED, "No matching entity found in scene !");
+                }
             }else if let Some(asset) = selected_asset{
                 //2. Cas ou on selectionne un asset dans le panneau du bas Project / Asset
                 ui.colored_label(egui::Color32::LIGHT_BLUE, "📁 Asset Importer Settings");
@@ -91,7 +99,7 @@ pub fn render(
                 //3. Cas ou rien n'est selectionné
                 ui.colored_label(
                     egui::Color32::GRAY,
-                    "No object or asset selected !",
+                    "No object or asset selected in scene!",
                 );
             }
         });
