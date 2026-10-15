@@ -1,6 +1,7 @@
+use crate::views::scene::SceneEntity;
 
 //Le panneau hierarchy
-pub fn render(ctx: &egui::Context, objects: &[&str], selected_object: &mut Option<String>) {
+pub fn render(ctx: &egui::Context, selected_object: &mut Option<String>, scene_entities: &mut Vec<SceneEntity>) {
     egui::SidePanel::left("hierarchy_panel")
         .default_width(200.0)
         .resizable(true)
@@ -16,12 +17,13 @@ pub fn render(ctx: &egui::Context, objects: &[&str], selected_object: &mut Optio
             //Lister les objets de la scene
             let scroll_area = egui::ScrollArea::vertical().auto_shrink([false; 2]);
             scroll_area.show(ui, |ui| {
-                for obj in objects {
-                    let is_selected = selected_object.as_deref() == Some(*obj);
-                    //Un label cliquable qui change d'apparence si il est selectionné
-                    let response = ui.selectable_label(is_selected, *obj);
+                for entity in scene_entities{
+                    let is_selected = selected_object.as_ref() == Some(&entity.name);
+                    //On affiche un bouton ou un label cliquable pour chaque objet
+                    let response = ui.selectable_label(is_selected, &entity.name);
                     if response.clicked() {
-                        *selected_object = Some(obj.to_string());
+                        //Au clic, on selectionne l'objet (Inspector le detecte et affiche les propeités)
+                        *selected_object = Some(entity.name.clone())
                     }
                 }
             });

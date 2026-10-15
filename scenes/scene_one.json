@@ -22,5 +22,17 @@
     ],
     "x": 813.0,
     "y": 415.0
+  },
+  {
+    "name": "Sprite_Check_Point.png_sub_0",
+    "asset_path": "assets\\Sprites\\Check_Point.png",
+    "uv_rect": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    "x": 404.0,
+    "y": 562.0
   }
 ]

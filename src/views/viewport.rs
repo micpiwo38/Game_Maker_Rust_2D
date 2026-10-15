@@ -50,6 +50,16 @@ pub fn render(
                 }
                 //Afficher le sprite dans le viewport
                 ui.put(sprite_rect, img);
+                //Effet focus - selection
+                if let Some(selected_name) = selected_objects{
+                    if selected_name == &entity.name{
+                        ui.painter().rect_stroke(
+                            sprite_rect,
+                            0.0,
+                            egui::Stroke::new(2.0, Color32::from_rgb(0,200,255))
+                        );
+                    }
+                }
             }
         }
 
