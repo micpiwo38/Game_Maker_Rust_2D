@@ -177,7 +177,11 @@ impl<'a> GameState<'a> {
                 self.assets = crate::views::asset_browser::load_directory(&self.current_asset_path);
             }
             //7. Viewport = Zone centrale
-            crate::views::viewport::render(ctx);
+            crate::views::viewport::render(
+                ctx,
+                &mut self.scene_object,
+                &mut self.selected_object,
+            );
         });
         //-----------------------------------------------------------------------------------//
         self.egui_state.handle_platform_output(self.window, full_output.platform_output);

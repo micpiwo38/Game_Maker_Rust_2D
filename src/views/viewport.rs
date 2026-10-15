@@ -1,6 +1,11 @@
 use egui::{Color32, Sense};
+use crate::views::asset_browser::AssetEntry;
 
-pub fn render(ctx: &egui::Context){
+pub fn render(
+    ctx: &egui::Context,
+    scene_objects: &mut Vec<String>, //Ajouter un objet dans la Hierarchie
+    selected_objects: &mut Option<String>,
+){
     egui::CentralPanel::default().show(ctx, |ui|{
         ui.horizontal(|ui|{
             ui.heading("Viewport");
@@ -31,5 +36,21 @@ pub fn render(ctx: &egui::Context){
                 );
             });
         });
+        //Gestion du DROP GameObject
+        //Si on relache le bouton de la souris
+        if ui.input(|i| i.pointer.any_released()){
+            //Si on est dans la zone viewport
+            if let Some(pointer_pos) = ui.input(|i| i.pointer.interact_pos()){
+                if rect.contains(pointer_pos){
+                    //On recupère le sprite qui est train d'etre glissé
+                    if let Some(dragged_sprite) = ctx.data_mut(|d| d.remove_temp::<AssetEntry>(egui::Id::new("dragged_sprite"))){
+                        //Spawn l'objet dans la scene
+                        let new_object_name = format!("Sprite_{}", dragged_sprite.name);
+                        scene_objects.push(new_object_name.clone());
+                        *selected_objects = Some(new_object_name);
+                    }
+                }
+            }
+        }
     });
 }

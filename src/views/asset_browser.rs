@@ -4,7 +4,7 @@ use std::path::Path;
 use egui::{Color32, TextureHandle, Rect};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct AssetEntry {
     pub name: String,
     pub path: String,
@@ -230,8 +230,16 @@ pub fn render(
                                                                     } else {
                                                                         sub.name.clone()
                                                                     };
-                                                                    if ui.link(sub_short).clicked() {
+                                                                    let response = ui.add(egui::Button::new(sub_short).sense(egui::Sense::click_and_drag()));
+                                                                    if response.clicked(){
                                                                         *selected_asset = Some(sub.clone());
+                                                                    }
+                                                                    //Si utilisateur glisse l'element hors de sa case
+                                                                    if response.dragged(){
+                                                                        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                                                                        ui.ctx().data_mut(|d|{
+                                                                            d.insert_temp(egui::Id::new("dragged_sprite"), sub.clone());
+                                                                        });
                                                                     }
                                                                 });
                                                             });
