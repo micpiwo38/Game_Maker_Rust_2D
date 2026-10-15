@@ -139,7 +139,7 @@ impl<'a> GameState<'a> {
         //-------------------------------------------------------------------------------//
         let full_output = self.egui_ctx.run(raw_input, |ctx| {
             //1. Le menu
-            crate::views::menu::render(ctx);
+            crate::views::menu::render(ctx, &mut self.scene_entities);
             //2. Le panneau Hierarchy
             let object_refs: Vec<&str> = self.scene_entities.iter().map(|s| s.name.as_str()).collect();
             crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);

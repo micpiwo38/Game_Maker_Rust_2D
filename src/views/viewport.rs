@@ -37,7 +37,7 @@ pub fn render(
             if let Some(texture) = texture_cache.get(&entity.asset_path){
                 let sprite_size = Vec2::new(64.0,64.0);
                 //Position absolue dans le restangle panneau viewport
-                let abs_pos = rect.min + entity.position.to_vec2();
+                let abs_pos = rect.min + egui::vec2(entity.x, entity.y);
                 let sprite_rect = Rect::from_min_size(abs_pos, sprite_size);
 
                 let mut img = egui::Image::new((texture.id(), sprite_size));
@@ -80,7 +80,8 @@ pub fn render(
                             name: format!("Sprite_{}", dragged_sprite.name),
                             asset_path: dragged_sprite.path.clone(),
                             uv_rect: dragged_sprite.uv_rect,
-                            position: local_pos
+                            x: local_pos.x,
+                            y: local_pos.y,
                         };
                         scene_entities.push(new_entity);
                         *selected_objects = Some(format!("Sprite_{}", dragged_sprite.name));

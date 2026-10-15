@@ -41,11 +41,11 @@ pub fn render(
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 ui.label("Position X : ");
-                                ui.add(egui::DragValue::new(&mut entity.position.x).speed(1.0)); //Changer la position X du GameObject
+                                ui.add(egui::DragValue::new(&mut entity.x ).speed(1.0)); //Changer la position X du GameObject
                             });
                             ui.horizontal(|ui| {
                                 ui.label("Position Y : ");
-                                ui.add(egui::DragValue::new(&mut entity.position.y).speed(1.0));
+                                ui.add(egui::DragValue::new(&mut entity.y).speed(1.0));
                             })
                         });
                 }else{
