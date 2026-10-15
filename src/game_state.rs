@@ -1,9 +1,12 @@
 use std::collections::HashMap;
+use egui::ahash::AHashMap;
 use egui::TextureHandle;
 use wgpu::{Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
 use crate::views::asset_browser::AssetEntry;
+use crate::views::scene::SceneEntity;
 use crate::views::sprite_editor::SpriteEditorState;
+
 
 pub struct GameState<'a> {
     pub surface: Surface<'a>,
@@ -19,11 +22,11 @@ pub struct GameState<'a> {
 
     //Le panneau Hierarchy
     pub selected_object: Option<String>,
-    pub scene_object: Vec<String>,
+    pub scene_entities: Vec<SceneEntity>,
     pub current_asset_path: String,
     pub assets: Vec<AssetEntry>,
     pub last_path: String,
-    pub asset_texture_cache: HashMap<String, TextureHandle>,
+    pub asset_texture_cache: AHashMap<String, TextureHandle>,
     //Selectionné un asset (image, son, GameObject, etc...)
     pub selected_asset: Option<crate::views::asset_browser::AssetEntry>,
     pub sprite_editor_state: SpriteEditorState
@@ -99,16 +102,11 @@ impl<'a> GameState<'a> {
 
         Self{
             window, surface, device, queue, config, size, egui_ctx, egui_state, egui_renderer, selected_object: None,
-            scene_object: vec![
-                "MainCamera".to_string(),
-                "Player".to_string(),
-                "Enemy_One".to_string(),
-                "TileMap".to_string(),
-            ],
+            scene_entities: Vec::new(),
             current_asset_path: current_path,
             assets: initial_assets,
             last_path: "assets".to_string(),
-            asset_texture_cache: HashMap::new(),
+            asset_texture_cache: AHashMap::new(),
             selected_asset: None,
             sprite_editor_state: Default::default()
         }
@@ -143,7 +141,7 @@ impl<'a> GameState<'a> {
             //1. Le menu
             crate::views::menu::render(ctx);
             //2. Le panneau Hierarchy
-            let object_refs: Vec<&str> = self.scene_object.iter().map(|s| s.as_str()).collect();
+            let object_refs: Vec<&str> = self.scene_entities.iter().map(|s| s.name.as_str()).collect();
             crate::views::hierarchy::render(ctx, &object_refs, &mut self.selected_object);
             //3. Le panneau Inspector a droite
             crate::views::inspector::render(ctx, &mut self.selected_object, &mut self.selected_asset, &mut self.sprite_editor_state);
@@ -179,8 +177,9 @@ impl<'a> GameState<'a> {
             //7. Viewport = Zone centrale
             crate::views::viewport::render(
                 ctx,
-                &mut self.scene_object,
+                &mut self.scene_entities,
                 &mut self.selected_object,
+                &mut self.asset_texture_cache
             );
         });
         //-----------------------------------------------------------------------------------//

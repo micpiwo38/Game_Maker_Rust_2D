@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use egui::{Color32, TextureHandle, Rect};
+use egui::ahash::AHashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default)]
@@ -94,7 +95,7 @@ pub fn render(
     ctx: &egui::Context,
     current_path: &mut String,
     assets: &mut [AssetEntry],
-    texture_cache: &mut HashMap<String, TextureHandle>,
+    texture_cache: &mut AHashMap<String, TextureHandle>,
     selected_asset: &mut Option<AssetEntry>,
     selected_object: &mut Option<String>
 ) {
