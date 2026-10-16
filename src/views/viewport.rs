@@ -36,6 +36,7 @@ pub fn render(
                 camera_offset.y = entity.y - viewport_center.y + 32.0;
             }
         }
+
         //On colore le fond en bleu-gris pour simuler la camera Unity
         ui.painter().rect_filled(
             rect,
@@ -64,23 +65,28 @@ pub fn render(
                 }
                 //Afficher le sprite dans le viewport
                 ui.put(sprite_rect, img);
+                //Gizmo => deplacer l'objet a la souris
+                let drag_id = egui::Id::new(format!("gizmo_{}", entity.name));
+                let response = ui.interact(sprite_rect, drag_id, Sense::click_and_drag());
+                //Si utilisateur clic un gameobject dans le viewport
+                if response.clicked() || response.secondary_clicked(){
+                    *selected_objects = Some(entity.name.clone());
+                }
+                //Clic prolonger + glisser dans le viewport
+                if response.dragged(){
+                    *selected_objects = Some(entity.name.clone());
+                    let delta = response.drag_delta();
+                    entity.x += delta.x;
+                    entity.y += delta.y;
+                }
                 //Effet focus - selection + deplacement
                 if let Some(selected_name) = selected_objects{
                     if selected_name == &entity.name{
                         ui.painter().rect_stroke(
                             sprite_rect,
                             0.0,
-                            egui::Stroke::new(2.0, Color32::from_rgb(0,200,255))
+                            egui::Stroke::new(2.0_f32, Color32::from_rgb(0,200,255))
                         );
-                        //Gizmo => deplacer l'objet a la souris
-                        let drag_id = egui::Id::new(format!("gizmo_{}", entity.name));
-                        let response = ui.interact(sprite_rect, drag_id, Sense::drag());
-                        //Clic prolonger + glisser dans le viewport
-                        if response.dragged(){
-                            let delta = response.drag_delta();
-                            entity.x += delta.x;
-                            entity.y += delta.y;
-                        }
                         //Afficher les fleches de deplacement (X rouge et Y vert au centre de l'objet)
                         let center = sprite_rect.center();
                         ui.painter().line_segment([center, center + egui::vec2(25.0,0.0)], egui::Stroke::new(3.0_f32, Color32::LIGHT_RED));

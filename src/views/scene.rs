@@ -2,7 +2,7 @@ use std::fs;
 use serde::{Deserialize, Serialize};
 use crate::views::asset_browser::AssetEntry;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SceneEntity{
     pub name: String,
     pub asset_path: String,
