@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use egui::ahash::AHashMap;
-use egui::TextureHandle;
+use egui::{TextureHandle, Vec2};
 use wgpu::{Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
 use crate::views::asset_browser::AssetEntry;
@@ -29,7 +29,9 @@ pub struct GameState<'a> {
     pub asset_texture_cache: AHashMap<String, TextureHandle>,
     //Selectionné un asset (image, son, GameObject, etc...)
     pub selected_asset: Option<crate::views::asset_browser::AssetEntry>,
-    pub sprite_editor_state: SpriteEditorState
+    pub sprite_editor_state: SpriteEditorState,
+    pub focus_target: Option<String>,
+    pub camera_offset: egui::Vec2,
 }
 
 impl<'a> GameState<'a> {
@@ -108,7 +110,9 @@ impl<'a> GameState<'a> {
             last_path: "assets".to_string(),
             asset_texture_cache: AHashMap::new(),
             selected_asset: None,
-            sprite_editor_state: Default::default()
+            sprite_editor_state: Default::default(),
+            focus_target: Default::default(),
+            camera_offset: Default::default(),
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -144,7 +148,8 @@ impl<'a> GameState<'a> {
             crate::views::hierarchy::render(
                 ctx,
                 &mut self.selected_object,
-                &mut self.scene_entities
+                &mut self.scene_entities,
+                &mut self.focus_target
             );
             //3. Le panneau Inspector a droite
             crate::views::inspector::render(
@@ -188,7 +193,9 @@ impl<'a> GameState<'a> {
                 ctx,
                 &mut self.scene_entities,
                 &mut self.selected_object,
-                &mut self.asset_texture_cache
+                &mut self.asset_texture_cache,
+                &mut self.camera_offset,
+                &mut self.focus_target
             );
         });
         //-----------------------------------------------------------------------------------//

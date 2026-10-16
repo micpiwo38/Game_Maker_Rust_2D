@@ -2,7 +2,12 @@ use rfd::MessageDialogResult::No;
 use crate::views::scene::SceneEntity;
 
 //Le panneau hierarchy
-pub fn render(ctx: &egui::Context, selected_object: &mut Option<String>, scene_entities: &mut Vec<SceneEntity>) {
+pub fn render(
+    ctx: &egui::Context,
+    selected_object: &mut Option<String>,
+    scene_entities: &mut Vec<SceneEntity>,
+    focus_target: &mut Option<String>,
+) {
     egui::SidePanel::left("hierarchy_panel")
         .default_width(200.0)
         .resizable(true)
@@ -24,9 +29,15 @@ pub fn render(ctx: &egui::Context, selected_object: &mut Option<String>, scene_e
                     let is_selected = selected_object.as_ref() == Some(&entity.name);
                     //On affiche un bouton ou un label cliquable pour chaque objet
                     let response = ui.selectable_label(is_selected, &entity.name);
+                    //Clic affiche les propriétées dans Inspector
                     if response.clicked() {
                         //Au clic, on selectionne l'objet (Inspector le detecte et affiche les propeités)
                         *selected_object = Some(entity.name.clone())
+                    }
+                    //Double clic => focus sur le Transform de l'object selectionné
+                    if response.double_clicked() {
+                        *selected_object = Some(entity.name.clone());
+                        *focus_target = Some(entity.name.clone());
                     }
                 }
             });

@@ -7,7 +7,9 @@ pub fn render(
     ctx: &egui::Context,
     scene_entities: &mut Vec<SceneEntity>, //Ajouter un objet dans la Hierarchie
     selected_objects: &mut Option<String>,
-    texture_cache: &mut HashMap<String, TextureHandle>
+    texture_cache: &mut HashMap<String, TextureHandle>,
+    camera_offset: &mut egui::Vec2,
+    focus_target: &mut Option<String>,
 ){
     egui::CentralPanel::default().show(ctx, |ui|{
         ui.horizontal(|ui|{
@@ -24,6 +26,16 @@ pub fn render(
         //Recuperer l'espace disponible au centre de l'ecran
         let available_size = ui.available_size();
         let (rect, _response) = ui.allocate_exact_size(available_size, Sense::hover());
+
+        //Si double clic a demamndé un focus sur un GameObject precis
+        if let Some(target_name) = focus_target.take(){
+            if let Some(entity) = scene_entities.iter().find(|e| e.name == target_name){
+                let viewport_center = rect.size() / 2.0; //Calcul le centre du viewport
+                //On ajuste l'offset (decalage) de la camera pour placer l'objet (entity) au centre
+                camera_offset.x = entity.x - viewport_center.x + 32.0;
+                camera_offset.y = entity.y - viewport_center.y + 32.0;
+            }
+        }
         //On colore le fond en bleu-gris pour simuler la camera Unity
         ui.painter().rect_filled(
             rect,
@@ -36,9 +48,12 @@ pub fn render(
             //Si la texture existe => on la met en cache avec son chemin
             if let Some(texture) = texture_cache.get(&entity.asset_path){
                 let sprite_size = Vec2::new(64.0,64.0);
-                //Position absolue dans le restangle panneau viewport
-                let abs_pos = rect.min + egui::vec2(entity.x, entity.y);
-                let sprite_rect = Rect::from_min_size(abs_pos, sprite_size);
+
+                //Position à l'écran = position du monde - Offset de la camera
+                let world_pos = egui::vec2(entity.x, entity.y);
+
+                let screen_pos = rect.min + world_pos - *camera_offset;
+                let sprite_rect = Rect::from_min_size(screen_pos, sprite_size);
 
                 let mut img = egui::Image::new((texture.id(), sprite_size));
                 //Les position X et Y
