@@ -8,7 +8,19 @@
       0.25,
       1.0
     ],
-    "x": 597.0,
-    "y": 500.0
+    "x": 530.0,
+    "y": 395.0
+  },
+  {
+    "name": "Sprite_Bad_Heart.png_sub_1",
+    "asset_path": "assets\\Sprites\\Bad_Heart.png",
+    "uv_rect": [
+      0.25,
+      0.0,
+      0.5,
+      1.0
+    ],
+    "x": 801.0,
+    "y": 289.0
   }
 ]

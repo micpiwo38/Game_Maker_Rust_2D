@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Sprite_Check_Point.png_sub_0",
+    "asset_path": "assets\\Sprites\\Check_Point.png",
+    "uv_rect": [
+      0.0,
+      0.0,
+      1.0,
+      1.0
+    ],
+    "x": 286.0,
+    "y": 225.0
+  },
+  {
+    "name": "Sprite_Fire_Level.png_sub_0",
+    "asset_path": "assets\\Sprites\\Fire_Level.png",
+    "uv_rect": [
+      0.0,
+      0.0,
+      0.33333334,
+      0.33333334
+    ],
+    "x": 650.0,
+    "y": 303.0
+  },
+  {
+    "name": "Sprite_Fire_Level.png_sub_1",
+    "asset_path": "assets\\Sprites\\Fire_Level.png",
+    "uv_rect": [
+      0.33333334,
+      0.0,
+      0.6666667,
+      0.33333334
+    ],
+    "x": 621.0,
+    "y": 173.0
+  },
+  {
+    "name": "Sprite_Bad_Heart.png_sub_0",
+    "asset_path": "assets\\Sprites\\Bad_Heart.png",
+    "uv_rect": [
+      0.0,
+      0.0,
+      0.25,
+      1.0
+    ],
+    "x": 861.0,
+    "y": 394.0
+  }
+]

@@ -32,6 +32,10 @@ pub struct GameState<'a> {
     pub sprite_editor_state: SpriteEditorState,
     pub focus_target: Option<String>,
     pub camera_offset: egui::Vec2,
+    //Notif
+    pub save_notification_timer: f32,
+    pub save_notification_message: String,
+    pub save_notification_color: egui::Color32,
 }
 
 impl<'a> GameState<'a> {
@@ -113,6 +117,9 @@ impl<'a> GameState<'a> {
             sprite_editor_state: Default::default(),
             focus_target: Default::default(),
             camera_offset: Default::default(),
+            save_notification_timer: 0.0,
+            save_notification_message: "".to_string(),
+            save_notification_color: egui::Color32::from_rgb(0,255,120)
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
@@ -140,10 +147,25 @@ impl<'a> GameState<'a> {
             .create_view(&wgpu::TextureViewDescriptor::default());
         //1. Demarrage de la frame egui et appel du module menu
         let raw_input = self.egui_state.take_egui_input(self.window);
-        //-------------------------------------------------------------------------------//
+        //--------------------------------RENDER 60 FPS-----------------------------------------------//
         let full_output = self.egui_ctx.run(raw_input, |ctx| {
             //1. Le menu
             crate::views::menu::render(ctx, &mut self.scene_entities);
+            //Sauvegarde Ctrl + S
+            if ctx.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::S)){
+                crate::views::scene::save_scene(&self.scene_entities);
+                //Var timer + message + couleur
+                self.save_notification_timer = 10.0;
+                self.save_notification_message = "Scene Saved Successfully !".to_string();
+                self.save_notification_color = egui::Color32::from_rgb(0, 255, 120);
+            }
+            crate::views::scene::render_toast(
+                ctx,
+                &mut self.save_notification_timer,
+                &self.save_notification_message,
+                self.save_notification_color
+            );
+
             //2. Le panneau Hierarchy
             crate::views::hierarchy::render(
                 ctx,
