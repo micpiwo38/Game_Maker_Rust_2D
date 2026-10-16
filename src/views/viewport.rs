@@ -44,14 +44,13 @@ pub fn render(
         );
 
         //Rendu des sprites DRAG - DROP dans le panneau Viewport
-        for entity in scene_entities.iter(){
+        for entity in scene_entities.iter_mut(){
             //Si la texture existe => on la met en cache avec son chemin
             if let Some(texture) = texture_cache.get(&entity.asset_path){
                 let sprite_size = Vec2::new(64.0,64.0);
 
                 //Position à l'écran = position du monde - Offset de la camera
                 let world_pos = egui::vec2(entity.x, entity.y);
-
                 let screen_pos = rect.min + world_pos - *camera_offset;
                 let sprite_rect = Rect::from_min_size(screen_pos, sprite_size);
 
@@ -65,7 +64,7 @@ pub fn render(
                 }
                 //Afficher le sprite dans le viewport
                 ui.put(sprite_rect, img);
-                //Effet focus - selection
+                //Effet focus - selection + deplacement
                 if let Some(selected_name) = selected_objects{
                     if selected_name == &entity.name{
                         ui.painter().rect_stroke(
@@ -73,6 +72,19 @@ pub fn render(
                             0.0,
                             egui::Stroke::new(2.0, Color32::from_rgb(0,200,255))
                         );
+                        //Gizmo => deplacer l'objet a la souris
+                        let drag_id = egui::Id::new(format!("gizmo_{}", entity.name));
+                        let response = ui.interact(sprite_rect, drag_id, Sense::drag());
+                        //Clic prolonger + glisser dans le viewport
+                        if response.dragged(){
+                            let delta = response.drag_delta();
+                            entity.x += delta.x;
+                            entity.y += delta.y;
+                        }
+                        //Afficher les fleches de deplacement (X rouge et Y vert au centre de l'objet)
+                        let center = sprite_rect.center();
+                        ui.painter().line_segment([center, center + egui::vec2(25.0,0.0)], egui::Stroke::new(3.0_f32, Color32::LIGHT_RED));
+                        ui.painter().line_segment([center, center + egui::vec2(0.0,-25.0)], egui::Stroke::new(3.0_f32, Color32::LIGHT_GREEN));
                     }
                 }
             }
@@ -101,8 +113,23 @@ pub fn render(
                         //Calcul de la position relative a l'interieur du panneau Viewport
                         let local_vec = pointer_pos - rect.min;
                         let local_pos = egui::pos2(local_vec.x, local_vec.y);
+                        //1. Modifier - incrementer le nom :
+                        let base_name = format!("Sprite_{}", dragged_sprite.name);
+                        //2. Compter combien d'objet on deja ce nom ?
+
+                        //3. Generer le nom final et unique du GO
+                        let unique_name = {
+                            let count = scene_entities.iter()
+                                .filter(|e| e.name == base_name || e.name.starts_with(&format!("{}-", base_name)))
+                                .count();
+                            if count == 0{
+                                base_name
+                            }else{
+                                format!("{}-{}", base_name, count + 1)
+                            }
+                        };
                         let new_entity = SceneEntity{
-                            name: format!("Sprite_{}", dragged_sprite.name),
+                            name: unique_name.clone(),
                             asset_path: dragged_sprite.path.clone(),
                             uv_rect: dragged_sprite.uv_rect,
                             x: local_pos.x,

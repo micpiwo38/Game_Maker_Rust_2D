@@ -10,6 +10,7 @@ pub fn render(
 ) {
     egui::SidePanel::left("hierarchy_panel")
         .default_width(200.0)
+        .max_width(300.0)
         .resizable(true)
         .show(ctx, |ui| {
             ui.heading("Hierarchy");

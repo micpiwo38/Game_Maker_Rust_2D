@@ -138,6 +138,7 @@ pub fn render(
                                         ui.set_height(110.0);
                                         ui.vertical_centered(|ui| {
                                             if asset.is_dir {
+                                                *current_path = asset.path.clone();
                                                 ui.add_space(10.0);
                                                 ui.label(egui::RichText::new("📁").size(28.0));
                                                 ui.add_space(5.0);

@@ -21,6 +21,7 @@ pub fn render(
 ) {
     egui::SidePanel::right("inspector_panel")
         .default_width(280.0)
+        .max_width(400.0)
         .resizable(true)
         .show(ctx, |ui| {
             ui.heading("Inspector");
