@@ -6,6 +6,7 @@ use crate::game_state::GameState;
 
 mod game_state;
 mod views;
+mod tilemap;
 
 fn main() {
     env_logger::init();

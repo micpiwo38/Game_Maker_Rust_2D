@@ -12,7 +12,7 @@ pub fn render(ctx: &egui::Context, scene_entites: &mut Vec<SceneEntity>) {
                     ui.close_menu();
                 }
                 //Sauvegarder la scene
-                if ui.button("Save Scene").clicked() {
+                if ui.button("Save Scene        (Ctrl + s)").clicked() {
                     //Sauvegarde de la scene
                     scene::save_scene(scene_entites);
                     ui.close_menu();

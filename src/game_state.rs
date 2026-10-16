@@ -3,6 +3,7 @@ use egui::ahash::AHashMap;
 use egui::{TextureHandle, Vec2};
 use wgpu::{Backends, Device, DeviceDescriptor, Features, Instance, InstanceDescriptor, Limits, PowerPreference, Queue, RequestAdapterOptions, Surface, SurfaceConfiguration, TextureUsages};
 use winit::window::Window;
+use crate::tilemap::TileData;
 use crate::views::asset_browser::AssetEntry;
 use crate::views::scene::SceneEntity;
 use crate::views::sprite_editor::SpriteEditorState;
@@ -36,6 +37,9 @@ pub struct GameState<'a> {
     pub save_notification_timer: f32,
     pub save_notification_message: String,
     pub save_notification_color: egui::Color32,
+    //Peindre avec TileMap
+    pub current_tile_brush: Option<TileData>,
+    pub is_painting_mode: bool,
 }
 
 impl<'a> GameState<'a> {
@@ -119,7 +123,9 @@ impl<'a> GameState<'a> {
             camera_offset: Default::default(),
             save_notification_timer: 0.0,
             save_notification_message: "".to_string(),
-            save_notification_color: egui::Color32::from_rgb(0,255,120)
+            save_notification_color: egui::Color32::from_rgb(0,255,120),
+            current_tile_brush: None,
+            is_painting_mode: false,
         }
     }
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {
